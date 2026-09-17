@@ -37,39 +37,37 @@ public class OrderProducerService {
      * @return Mono<String> chứa mã đơn hàng orderId
      */
     public Mono<String> createOrder(OrderRequest orderRequest) {
-        return Mono.fromCallable(() -> {
-            String orderId = (orderRequest != null && orderRequest.orderId() != null && !orderRequest.orderId().isBlank())
-                    ? orderRequest.orderId()
-                    : UUID.randomUUID().toString();
+        String orderId = (orderRequest != null && orderRequest.orderId() != null && !orderRequest.orderId().isBlank())
+                ? orderRequest.orderId()
+                : UUID.randomUUID().toString();
 
-            OrderRequest requestWithId = new OrderRequest(
-                    orderId,
-                    orderRequest != null ? orderRequest.customerId() : null,
-                    orderRequest != null ? orderRequest.items() : null,
-                    orderRequest != null ? orderRequest.totalAmount() : null,
-                    orderRequest != null ? orderRequest.shippingAddress() : null
-            );
+        OrderRequest requestWithId = new OrderRequest(
+                orderId,
+                orderRequest != null ? orderRequest.customerId() : null,
+                orderRequest != null ? orderRequest.items() : null,
+                orderRequest != null ? orderRequest.totalAmount() : null,
+                orderRequest != null ? orderRequest.shippingAddress() : null
+        );
 
-            OrderEvent event = OrderEvent.createOrderCreatedEvent(orderId, requestWithId);
+        OrderEvent event = OrderEvent.createOrderCreatedEvent(orderId, requestWithId);
 
-            log.info("Bắt đầu đẩy sự kiện order.created vào Kafka topic '{}' với key (orderId) = '{}'", topicName, orderId);
+        log.info("Bắt đầu đẩy sự kiện order.created vào Kafka topic '{}' với key (orderId) = '{}'", topicName, orderId);
 
-            // BẮT BUỘC: Sử dụng orderId làm Key phân tuyến (giải quyết BUG-03)
-            kafkaTemplate.send(topicName, orderId, event)
-                    .whenComplete((result, ex) -> {
-                        if (ex != null) {
-                            log.error("Thất bại khi gửi sự kiện order.created cho orderId={}: {}", orderId, ex.getMessage(), ex);
-                        } else {
-                            log.info("Đã gửi thành công sự kiện order.created cho orderId={} vào topic={} | Partition={} | Offset={}",
-                                    orderId,
-                                    result.getRecordMetadata().topic(),
-                                    result.getRecordMetadata().partition(),
-                                    result.getRecordMetadata().offset());
-                        }
-                    });
+        // BẮT BUỘC: Sử dụng orderId làm Key phân tuyến (giải quyết BUG-03)
+        kafkaTemplate.send(topicName, orderId, event)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Thất bại khi gửi sự kiện order.created cho orderId={}: {}", orderId, ex.getMessage(), ex);
+                    } else {
+                        log.info("Đã gửi thành công sự kiện order.created cho orderId={} vào topic={} | Partition={} | Offset={}",
+                                orderId,
+                                result.getRecordMetadata().topic(),
+                                result.getRecordMetadata().partition(),
+                                result.getRecordMetadata().offset());
+                    }
+                });
 
-            return orderId;
-        });
+        return Mono.just(orderId);
     }
 
     public String getTopicName() {

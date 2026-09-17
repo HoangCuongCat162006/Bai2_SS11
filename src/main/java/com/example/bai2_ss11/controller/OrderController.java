@@ -23,7 +23,7 @@ public class OrderController {
      * @param orderRequest payload JSON chứa thông tin đơn hàng
      * @return Mono<String> mã đơn hàng orderId
      */
-    @PostMapping
+    @PostMapping(path = {"", "/"})
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Mono<String> createOrder(@RequestBody(required = false) OrderRequest orderRequest) {
         OrderRequest request = orderRequest != null 
